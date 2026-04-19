@@ -16,6 +16,15 @@ async function startServer() {
   // Register API routes
   app.use("/api", apiRouter);
 
+  // Health endpoints for quick liveness checks
+  app.get("/health", (_req, res) => {
+    return res.status(200).json({ status: "ok" });
+  });
+
+  app.get("/api/health", (_req, res) => {
+    return res.status(200).json({ status: "ok" });
+  });
+
   // Serve static files from dist/public in production
   const staticPath =
     process.env.NODE_ENV === "production"
@@ -24,9 +33,20 @@ async function startServer() {
 
   app.use(express.static(staticPath));
 
-  // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
+  // Handle client-side routing - serve index.html for non-API GET requests.
+  // Use a middleware instead of a wildcard route to avoid path-to-regexp
+  // parsing issues in some nested router versions.
+  app.use((req, res, next) => {
+    // Only handle HTML GET requests that are not for the API or static assets
+    if (
+      req.method === "GET" &&
+      req.accepts("html") &&
+      !req.path.startsWith("/api") &&
+      !req.path.startsWith("/public")
+    ) {
+      return res.sendFile(path.join(staticPath, "index.html"));
+    }
+    next();
   });
 
   const port = process.env.PORT || 5000;
