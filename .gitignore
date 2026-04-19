@@ -1,3 +1,17 @@
+node_modules/
+dist/
+.env
+.env.local
+.DS_Store
+.idea/
+.vscode/
+/*.log
+/*.tgz
+/.cache/
+coverage/
+pnpm-lock.yaml
+# workspace file (optional) - uncomment if you want to keep it in repo
+# powerguard-ai.code-workspace
 # Dependencies
 **/node_modules
 .pnpm-store/
