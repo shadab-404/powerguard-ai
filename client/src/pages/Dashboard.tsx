@@ -19,7 +19,15 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { ArrowRight, AlertTriangle, Zap, TrendingUp } from "lucide-react";
+import { ArrowRight, AlertTriangle, Zap, TrendingUp, Play, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import LiveIndicator from "@/components/LiveIndicator";
+import CountUp from "@/components/CountUp";
+import MapPlaceholder from "@/components/MapPlaceholder";
+import AlertsPanel from "@/components/AlertsPanel";
+import MeterModal from "@/components/MeterModal";
+import AIInsights from "@/components/AIInsights";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import StatusBadge from "@/components/StatusBadge";
 import RiskScoreRing from "@/components/RiskScoreRing";
@@ -49,6 +57,21 @@ export default function Dashboard() {
       }).format(new Date()),
     []
   );
+
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [live, setLive] = useState(true);
+  const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [insights, setInsights] = useState<string[]>([]);
+
+  // Auto-refresh every 5 seconds to create a live feeling
+  useEffect(() => {
+    if (!live) return;
+    const id = setInterval(() => {
+      refetchDashboard();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [live, refetchDashboard]);
 
   if (dashboardLoading) {
     return (
@@ -99,12 +122,12 @@ export default function Dashboard() {
         </div>
 
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
-          <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
+          <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md transform hover:-translate-y-1">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div>
                 <CardDescription>Total meters</CardDescription>
                 <CardTitle className="mt-2 font-mono text-3xl tabular-nums">
-                  {stats.totalMeters}
+                  <CountUp value={stats.totalMeters} />
                 </CardTitle>
               </div>
               <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
@@ -123,12 +146,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
+          <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md transform hover:-translate-y-1">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div>
                 <CardDescription>Suspicious meters</CardDescription>
                 <CardTitle className="mt-2 font-mono text-3xl tabular-nums text-amber-500">
-                  {stats.suspiciousMeters}
+                  <CountUp value={stats.suspiciousMeters} />
                 </CardTitle>
               </div>
               <div className="rounded-lg bg-amber-500/10 p-2.5 text-amber-500">
@@ -151,12 +174,12 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md">
+          <Card className="border-border/80 shadow-sm transition-shadow hover:shadow-md transform hover:-translate-y-1">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <div>
                 <CardDescription>Risk index</CardDescription>
                 <CardTitle className="mt-2 font-mono text-3xl tabular-nums text-red-500">
-                  {stats.riskPercentage}%
+                  <CountUp value={stats.riskPercentage} format={(v) => `${v}%`} />
                 </CardTitle>
               </div>
               <div className="rounded-lg bg-red-500/10 p-2.5 text-red-500">
@@ -380,12 +403,15 @@ export default function Dashboard() {
                       }
                     >
                       <td className="px-4 py-3">
-                        <Link
-                          to={`/meter/${alert.meterId}`}
+                        <button
+                          onClick={() => {
+                            setSelectedAlert(alert);
+                            setModalOpen(true);
+                          }}
                           className="font-mono font-medium text-primary hover:underline"
                         >
                           {alert.meterId}
-                        </Link>
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-foreground">
                         {alert.meterLocation}
@@ -409,12 +435,15 @@ export default function Dashboard() {
                         <StatusBadge status={alert.status} size="sm" />
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <Link
-                          to={`/meter/${alert.meterId}`}
+                        <button
+                          onClick={() => {
+                            setSelectedAlert(alert);
+                            setModalOpen(true);
+                          }}
                           className="inline-flex rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           Investigate
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -423,6 +452,47 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New enhanced area: map, AI insights and alerts panel */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Geographic hotspots</CardTitle>
+                <CardDescription>
+                  Map view of suspicious activity (demo)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MapPlaceholder
+                  hotspots={[
+                    { id: "M008", left: "24%", top: "32%", severity: "high" },
+                    { id: "M005", left: "48%", top: "45%", severity: "med" },
+                    { id: "M011", left: "68%", top: "62%", severity: "low" },
+                  ]}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-1">
+            <Card className="border-border/80 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">AI Insights</CardTitle>
+                <CardDescription>Automated observations from the model</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AIInsights insights={insights} />
+              </CardContent>
+            </Card>
+
+            <div className="mt-4">
+              <AlertsPanel alerts={alertsData ?? []} />
+            </div>
+          </div>
+        </section>
+
+        <MeterModal open={modalOpen} onOpenChange={setModalOpen} alert={selectedAlert} />
       </div>
     </DashboardLayout>
   );
