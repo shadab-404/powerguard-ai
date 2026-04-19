@@ -18,10 +18,7 @@ Run (development)
 This project has two dev servers: the frontend (Vite) and a backend server (tsx watch). Use the provided helper script:
 
 ```bash
-npm run karao
-```
-
-What `karao` does
+npm star
 - Starts the Vite dev server (frontend) with --host.
 - Starts the server watcher using `tsx watch server/index.ts`.
 
